@@ -2,14 +2,20 @@ import dotenv from 'dotenv';
 import express from "express";
 import mongoose from "mongoose";
 import cors from "cors";
-import { Item } from '../models/itemModel.js';
+import { Item } from './models/itemModel.js';
 
 
 dotenv.config()
 
 export const app = express();
 app.use(express.json());
-app.use(cors());
+app.use(cors(
+  {
+    origin: ["https://backend-test-cq6m47ny6-jake-ma4os-projects.vercel.app/"],
+    methods: ["POST", "GET"],
+    credentials: true
+  }
+));
 
 
 const connectionString = process.env.MONOGODB_URI || "";
