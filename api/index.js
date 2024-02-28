@@ -1,8 +1,8 @@
 import dotenv from 'dotenv';
-import express, { response } from "express";
+import express from "express";
 import mongoose from "mongoose";
 import cors from "cors";
-import { Item } from './models/itemModel.js';
+import { Item } from '../models/itemModel.js';
 
 
 dotenv.config()
