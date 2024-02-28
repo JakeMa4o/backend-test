@@ -16,7 +16,7 @@ const connectionString = process.env.MONOGODB_URI || "";
 const port = process.env.PORT || 8000;
 
 
-app.get("/", (req, res) => {
+export default app.get("/", (req, res) => {
   res.status(200).send("Welcome to express")
   // res.json({message: "Welcome to express"});
 })
