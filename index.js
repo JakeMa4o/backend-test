@@ -3,19 +3,14 @@ import express from "express";
 import mongoose from "mongoose";
 import cors from "cors";
 import { Item } from './models/itemModel.js';
+import { User } from "./models/userModel.js";
 
 
 dotenv.config()
 
 export const app = express();
 app.use(express.json());
-app.use(cors(
-  {
-    origin: ["https://backend-test-cq6m47ny6-jake-ma4os-projects.vercel.app/"],
-    methods: ["POST", "GET"],
-    credentials: true
-  }
-));
+app.use(cors());
 
 
 const connectionString = process.env.MONOGODB_URI || "";
@@ -62,15 +57,92 @@ app.get("/items", async (req, res) => {
   }
 })
 
-mongoose
-.connect(connectionString)
-.then(() => {
-  console.log("App connected to database");
-  app.listen(port, () => console.log(`Listening to port ${port}`));
+
+app.post("/users", async (req, res) => {
+  try {
+    if (
+      !req.body.email ||
+      !req.body.login ||
+      !req.body.password ||
+      !req.body.cpassword
+    ) {
+      return res.status(400).send({
+        message: "Send all required fields name, description"
+      })
+    }
+
+    const newUser = {
+      email: req.body.email,
+      login: req.body.login,
+      password: req.body.password,
+      cpassword: req.body.cpassword
+    };
+
+    const user = await User.create(newUser);
+
+    return res.status(201).send(user);
+  } catch (error) {
+    console.log(error)
+    res.status(500).send({ message: error.message })
+  }
 })
-.catch((error) => {
-  console.log(error);
-});
+
+
+app.get("/users", async (req, res) => {
+  try {
+    const users = await User.find({});
+    return res.status(200).json(users);
+  } catch (error) {
+    console.log(error.message)
+    res.status(500).send({ message: error.message })
+  }
+})
+
+
+app.get("/users/:id", async (req, res) => {
+  try {
+    const { id } = req.params
+    const user = await User.findById(id);
+    return res.status(200).json(user);
+  } catch (error) {
+    console.log(error.message)
+    res.status(500).send({ message: error.message })
+  }
+})
+
+app.post("/find", async (req, res) => {
+  try {
+    const { login, password } = req.body;
+    const user = await User.findOne({ login: login, password: password }).exec()
+
+    if (user) {
+      return res.status(200).json({ message: 'Login successful', user: user });
+    } else {
+      return res.status(401).json({ error: 'Invalid login credentials' });
+    }
+
+  } catch (err) {
+    console.log(err);
+    // Send an error response
+    return res.status(500).json({ error: 'Internal Server Error' });
+  }
+})
+
+
+
+
+
+
+
+mongoose
+  .connect(connectionString)
+  .then(() => {
+    console.log("App connected to database");
+    app.listen(port, () => console.log(`Listening to port ${port}`));
+  })
+  .catch((error) => {
+    console.log(error);
+  });
 
 
 
