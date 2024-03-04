@@ -11,6 +11,7 @@ dotenv.config()
 export const app = express();
 app.use(express.json());
 app.use(cors());
+app.use(express.urlencoded({ extended: false }))
 
 
 const connectionString = process.env.MONOGODB_URI || "";
@@ -58,29 +59,39 @@ app.get("/items", async (req, res) => {
 })
 
 
-app.post("/users", async (req, res) => {
+app.post("/create", async (req, res) => {
+
+  const { email, login, password, cpassword } = req.body;
+
   try {
     if (
-      !req.body.email ||
-      !req.body.login ||
-      !req.body.password ||
-      !req.body.cpassword
+      !email ||
+      !login ||
+      !password ||
+      !cpassword
     ) {
       return res.status(400).send({
         message: "Send all required fields name, description"
       })
     }
 
-    const newUser = {
-      email: req.body.email,
-      login: req.body.login,
-      password: req.body.password,
-      cpassword: req.body.cpassword
-    };
+    const user = await User.findOne({ email }).exec();
 
-    const user = await User.create(newUser);
+    if (user) {
+      return res.status(400).send({ message: "User already exists" })
+    } else {
+      const newUserDetails = {
+        email: req.body.email,
+        login: req.body.login,
+        password: req.body.password,
+        cpassword: req.body.cpassword
+      };
 
-    return res.status(201).send(user);
+      const newUser = await User.create(newUserDetails);
+
+      return res.status(201).send({ message: "Your account is in queue, pls validate"});
+      // return res.status(201).send(newUser);
+    }
   } catch (error) {
     console.log(error)
     res.status(500).send({ message: error.message })
@@ -110,25 +121,22 @@ app.get("/users/:id", async (req, res) => {
   }
 })
 
-app.post("/find", async (req, res) => {
+
+app.post("/login", async (req, res) => {
+  const { login, password } = req.body;
   try {
-    const { login, password } = req.body;
-    const user = await User.findOne({ login: login, password: password }).exec()
+    const user = await User.findOne({ login, password }).exec();
 
-    if (user) {
-      return res.status(200).json({ message: 'Login successful', user: user });
+    if (!user) {
+      res.status(404).send({ message: "User not found" })
     } else {
-      return res.status(401).json({ error: 'Invalid login credentials' });
+      res.status(200).send({ message: "Welcome back" })
     }
-
-  } catch (err) {
-    console.log(err);
-    // Send an error response
-    return res.status(500).json({ error: 'Internal Server Error' });
+  } catch (error) {
+    console.log(error.message)
+    res.status(500).send({ message: error.message })
   }
 })
-
-
 
 
 
