@@ -2,13 +2,13 @@ import dotenv from 'dotenv';
 import express from "express";
 import mongoose from "mongoose";
 import cors from "cors";
-import { Item } from './models/itemModel.js';
-import { User } from "./models/userModel.js";
+import { Item } from '../models/itemModel.js';
+import { User } from "../models/userModel.js";
 
 
 dotenv.config()
 
-export const app = express();
+const app = express();
 app.use(express.json());
 app.use(cors());
 app.use(express.urlencoded({ extended: false }))
@@ -89,7 +89,7 @@ app.post("/create", async (req, res) => {
 
       const newUser = await User.create(newUserDetails);
 
-      return res.status(201).send({ message: "Your account is in queue, pls validate"});
+      return res.status(201).send({ message: "Your account is in queue, pls validate" });
       // return res.status(201).send(newUser);
     }
   } catch (error) {
@@ -153,4 +153,4 @@ mongoose
   });
 
 
-
+export default app;
