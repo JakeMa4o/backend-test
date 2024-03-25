@@ -2,8 +2,9 @@ import dotenv from 'dotenv';
 import express from "express";
 import mongoose from "mongoose";
 import cors from "cors";
-import { Item } from '../models/itemModel.js';
+// import { Item } from '../models/itemModel.js';
 import { User } from "../models/userModel.js";
+import { ValidateUser } from "../models/validateUserModel.js";
 
 
 dotenv.config()
@@ -14,7 +15,7 @@ app.use(cors());
 app.use(express.urlencoded({ extended: false }))
 
 
-const connectionString = process.env.MONOGODB_URI || "";
+const connectionString = "mongodb+srv://jake:152456zh@cluster0.i4nndvp.mongodb.net/"
 const port = process.env.PORT || 8000;
 
 
@@ -23,71 +24,44 @@ app.get("/", (req, res) => {
   // res.json({message: "Welcome to express"});
 })
 
-app.post("/items", async (req, res) => {
-  try {
-    if (
-      !req.body.name ||
-      !req.body.description
-    ) {
-      return res.status(400).send({
-        message: "Send all required fields name, description"
-      })
-    }
-
-    const newItem = {
-      name: req.body.name,
-      description: req.body.description
-    };
-    const item = await Item.create(newItem);
-
-    return res.status(201).send(item);
-  } catch (error) {
-    console.log(error)
-    res.status(500).send({ message: error.message })
-  }
-})
-
-
-app.get("/items", async (req, res) => {
-  try {
-    const items = await Item.find({});
-    return res.status(200).json(items);
-  } catch (error) {
-    console.log(error.message)
-    res.status(500).send({ message: error.message })
-  }
-})
-
 
 app.post("/create", async (req, res) => {
 
   const { email, login, password, cpassword } = req.body;
 
   try {
-    if (
-      !email ||
-      !login ||
-      !password ||
-      !cpassword
-    ) {
-      return res.status(400).send({
+    if (!email || !login || !password || !cpassword) {
+      return res.status(422).send({
         message: "Send all required fields name, description"
       })
     }
 
     const user = await User.findOne({ email }).exec();
 
-    if (user) {
+    const userInValidate = await ValidateUser.findOne({ email }).exec();
+
+    if (user || userInValidate) {
       return res.status(400).send({ message: "User already exists" })
     } else {
-      const newUserDetails = {
+
+      // Create 4 digit random number later ull secure it with bycript
+      // I am not sure if the number has the be unqiue throughout the database what are best practices
+      // Also there tokens and such I gotta learn as well
+      // After verification the digit must be deleted to not take up the free space
+
+
+      // Also gmail api integration
+      const val = Math.floor(1000 + Math.random() * 9000);
+
+      const UserValidationDetails = {
         email: req.body.email,
         login: req.body.login,
         password: req.body.password,
-        cpassword: req.body.cpassword
+        cpassword: req.body.cpassword,
+        validationCode: val
       };
 
-      const newUser = await User.create(newUserDetails);
+      const userToValidate = await ValidateUser.create(UserValidationDetails);
 
       return res.status(201).send({ message: "Your account is in queue, pls validate" });
       // return res.status(201).send(newUser);
@@ -99,26 +73,37 @@ app.post("/create", async (req, res) => {
 })
 
 
-app.get("/users", async (req, res) => {
+app.post("/validate", async (req, res) => {
+  const { email, validationCode } = req.body;
+
   try {
-    const users = await User.find({});
-    return res.status(200).json(users);
+    if (!email || !validationCode) {
+      return res.status(422).send({ message: "Send all required fields name, description" })
+    } 
+
+    const validateUser = await ValidateUser.findOne({ email }).exec();
+
+    if (validateUser && validateUser.validationCode == validationCode) {
+
+      const newUserDetails = {
+        email: validateUser.email,
+        login: validateUser.login,
+        password: validateUser.password,
+        cpassword: validateUser.cpassword,
+      };
+
+      const newUser = await User.create(newUserDetails);
+      const deletedUser = await ValidateUser.deleteOne(validateUser);
+      res.status(200).send({ message: "Your account has been successfully created!" })
+    } else {
+      res.status(401).send({ message: "Wrong credentials" })
+    }
+
   } catch (error) {
-    console.log(error.message)
+    console.log(error)
     res.status(500).send({ message: error.message })
   }
-})
 
-
-app.get("/users/:id", async (req, res) => {
-  try {
-    const { id } = req.params
-    const user = await User.findById(id);
-    return res.status(200).json(user);
-  } catch (error) {
-    console.log(error.message)
-    res.status(500).send({ message: error.message })
-  }
 })
 
 
@@ -140,6 +125,30 @@ app.post("/login", async (req, res) => {
 
 
 
+
+// Test
+
+app.get("/users", async (req, res) => {
+  try {
+    const users = await User.find({});
+    return res.status(200).json(users);
+  } catch (error) {
+    console.log(error.message)
+    res.status(500).send({ message: error.message })
+  }
+})
+
+
+// app.get("/users/:id", async (req, res) => {
+//   try {
+//     const { id } = req.params
+//     const user = await User.findById(id);
+//     return res.status(200).json(user);
+//   } catch (error) {
+//     console.log(error.message)
+//     res.status(500).send({ message: error.message })
+//   }
+// })
 
 
 mongoose
